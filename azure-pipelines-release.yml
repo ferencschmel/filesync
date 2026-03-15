@@ -56,10 +56,10 @@ stages:
               artifact: 'synctool-win-x64'
               publishLocation: 'pipeline'
 
-      - job: BuildMacOS
-        displayName: 'Build macOS x64 and arm64'
+      - job: BuildMacOSx64
+        displayName: 'Build macOS x64 (Intel)'
         pool:
-          vmImage: 'macOS-latest'
+          vmImage: 'macos-14'
         steps:
           - checkout: self
             displayName: 'Checkout source code'
@@ -73,9 +73,9 @@ stages:
           - task: Cache@2
             displayName: 'Cache npm packages'
             inputs:
-              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              key: 'npm | "$(Agent.OS)-x64" | package-lock.json'
               restoreKeys: |
-                npm | "$(Agent.OS)"
+                npm | "$(Agent.OS)-x64"
               path: $(npmCacheFolder)
 
           - script: npm ci --cache $(npmCacheFolder)
@@ -87,15 +87,43 @@ stages:
           - script: npm run package:mac-x64
             displayName: 'Package macOS x64 executable'
 
-          - script: npm run package:mac-arm64
-            displayName: 'Package macOS arm64 executable'
-
           - task: PublishPipelineArtifact@1
             displayName: 'Publish macOS x64 artifact'
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/release/synctool-macos-x64'
               artifact: 'synctool-macos-x64'
               publishLocation: 'pipeline'
+
+      - job: BuildMacOSarm64
+        displayName: 'Build macOS arm64 (Apple Silicon)'
+        pool:
+          vmImage: 'macos-latest'
+        steps:
+          - checkout: self
+            displayName: 'Checkout source code'
+            clean: true
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(nodeVersion)'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache npm packages'
+            inputs:
+              key: 'npm | "$(Agent.OS)-arm64" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)-arm64"
+              path: $(npmCacheFolder)
+
+          - script: npm ci --cache $(npmCacheFolder)
+            displayName: 'Install dependencies (npm ci)'
+
+          - script: npm run build
+            displayName: 'Compile TypeScript'
+
+          - script: npm run package:mac-arm64
+            displayName: 'Package macOS arm64 executable'
 
           - task: PublishPipelineArtifact@1
             displayName: 'Publish macOS arm64 artifact'
