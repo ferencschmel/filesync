@@ -1,0 +1,21 @@
+# Build output
+dist/
+release/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# syncTool internal files
+.synchash
+.synclaststate
+sync-conflict-server.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

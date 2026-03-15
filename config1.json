@@ -1,0 +1,15 @@
+{
+  "syncPairs": [
+    {
+      "name": "Test",
+      "localPath": "/Users/ferencschmel/work/Joerg/syncTest/client1",
+      "server": {
+        "type": "local",
+        "path": "/Users/ferencschmel/work/Joerg/syncTest/server"
+      }
+    }
+  ],
+
+  "autoSyncOnChange": false,
+  "autoSyncDelay": 5000
+}

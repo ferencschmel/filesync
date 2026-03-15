@@ -1,0 +1,30 @@
+{
+  "_comment": "Copy this file to config.json and edit to match your setup.",
+
+  "syncPairs": [
+    {
+      "name": "Documents",
+      "localPath": "/Users/yourname/Documents/SyncedDocs",
+      "server": {
+        "type": "local",
+        "path": "/Volumes/NAS/SyncedDocs"
+      }
+    },
+    {
+      "name": "WorkFiles",
+      "localPath": "/Users/yourname/Work",
+      "server": {
+        "type": "ftp",
+        "host": "ftp.example.com",
+        "port": 21,
+        "user": "ftpuser",
+        "password": "ftppassword",
+        "remotePath": "/sync/work",
+        "secure": false
+      }
+    }
+  ],
+
+  "autoSyncOnChange": false,
+  "autoSyncDelay": 5000
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/ференschmel/work/Joerg/syncTool/src/**)",
+      "Bash(node -e \":*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)"
+    ]
+  }
+}

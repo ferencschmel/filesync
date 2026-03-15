@@ -1,0 +1,84 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '20.x'
+  npmCacheFolder: $(Pipeline.Workspace)/.npm
+
+stages:
+  - stage: Build
+    displayName: 'Build and Test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Build, Lint and Test'
+        steps:
+          - checkout: self
+            displayName: 'Checkout source code'
+            clean: true
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(nodeVersion)'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache npm packages'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(npmCacheFolder)
+
+          - script: npm ci --cache $(npmCacheFolder)
+            displayName: 'Install dependencies (npm ci)'
+
+          - script: npm run build
+            displayName: 'Compile TypeScript (tsc)'
+            env:
+              NODE_ENV: production
+
+          - script: npm run test:ci
+            displayName: 'Run tests with coverage'
+            env:
+              JEST_JUNIT_OUTPUT_DIR: $(Common.TestResultsDirectory)
+              JEST_JUNIT_OUTPUT_NAME: junit.xml
+              JEST_JUNIT_CLASSNAME: '{classname}'
+              JEST_JUNIT_TITLE: '{title}'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish JUnit test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '$(Common.TestResultsDirectory)/junit.xml'
+              failTaskOnFailedTests: true
+              testRunTitle: 'synctool Unit Tests'
+              mergeTestResults: true
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publish code coverage results'
+            condition: succeededOrFailed()
+            inputs:
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage/lcov.info'
+              pathToSources: '$(System.DefaultWorkingDirectory)/src'
+              failIfCoverageEmpty: false
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish compiled dist as artifact'
+            condition: succeeded()
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/dist'
+              artifact: 'dist'
+              publishLocation: 'pipeline'
