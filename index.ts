@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { Command } from 'commander';
 import SyncClient from './src/SyncClient';
-import { buildAllHashFiles, readHashFile } from './src/HashManager';
+import WebServer from './src/WebServer';
+import { readHashFile } from './src/HashManager';
 import { HASH_FILE_NAME } from './src/constants';
 import { AppConfig } from './src/types';
 
@@ -24,15 +25,11 @@ program
   .option('-p, --pair <name>', 'Only initialise a specific sync pair')
   .action(async (opts: { pair?: string }) => {
     const client = await loadClient(program.opts().config as string);
-    if (opts.pair) {
-      const pair = client.config.syncPairs.find(p => p.name === opts.pair);
-      if (!pair) die(`Sync pair "${opts.pair}" not found in config.`);
-      console.log(`[synctool] Initialising: ${pair!.name}`);
-      await buildAllHashFiles(pair!.localPath);
-      console.log('[synctool] Done.');
-    } else {
-      await client.init();
-    }
+    const onProgress = (dir: string, count: number) => {
+      process.stdout.write(`\r[synctool] Processed ${count} dirs... ${dir.slice(-60)}\x1b[K`);
+    };
+    await client.init(opts.pair, onProgress).catch(die);
+    process.stdout.write('\n');
   });
 
 program
@@ -49,9 +46,11 @@ program
   .description('Watch for local changes and update hash files (optionally auto-sync)')
   .action(async () => {
     const client = await loadClient(program.opts().config as string);
+    const ui = startWebUi(client);
     await client.watch();
     process.on('SIGINT', () => {
       client.stopWatching();
+      ui?.stop();
       console.log('\n[synctool] Stopped.');
       process.exit(0);
     });
@@ -64,9 +63,11 @@ program
     const rawConfig = await loadConfig(program.opts().config as string);
     rawConfig.autoSyncOnChange = true;
     const client = new SyncClient(rawConfig, { log: console.log });
+    const ui = startWebUi(client);
     await client.watch();
     process.on('SIGINT', () => {
       client.stopWatching();
+      ui?.stop();
       console.log('\n[synctool] Stopped.');
       process.exit(0);
     });
@@ -114,6 +115,13 @@ async function loadConfig(configPath: string): Promise<AppConfig> {
 async function loadClient(configPath: string): Promise<SyncClient> {
   const config = await loadConfig(configPath);
   return new SyncClient(config, { log: console.log });
+}
+
+function startWebUi(client: SyncClient): WebServer | null {
+  if (!client.config.uiPort) return null;
+  const ui = new WebServer(client, client.config.uiPort);
+  ui.start();
+  return ui;
 }
 
 function die(msg: string | Error): never {

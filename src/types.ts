@@ -48,8 +48,28 @@ export interface SyncPairConfig {
   server: ServerConfig;
 }
 
+export interface InitStatus {
+  name: string;
+  initializing: boolean;
+  dirsProcessed: number;
+  currentDir: string | null;
+  lastInitAt: string | null;
+  lastError: string | null;
+}
+
+export interface PairStatus {
+  name: string;
+  localPath: string;
+  serverDesc: string;
+  syncing: boolean;
+  lastSyncAt: string | null;
+  lastStats: SyncStats | null;
+  lastError: string | null;
+}
+
 export interface AppConfig {
   syncPairs: SyncPairConfig[];
   autoSyncOnChange?: boolean;
   autoSyncDelay?: number;
+  uiPort?: number;
 }

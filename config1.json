@@ -9,7 +9,7 @@
       }
     }
   ],
-
+  "uiPort": 8080,
   "autoSyncOnChange": false,
   "autoSyncDelay": 5000
 }

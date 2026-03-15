@@ -121,6 +121,7 @@ Create a `config.json` in your working directory. Two server types are supported
 | `syncPairs` | array | required | List of sync pairs (see above) |
 | `autoSyncOnChange` | boolean | `false` | Sync automatically when a file change is detected (used by `watch-sync`) |
 | `autoSyncDelay` | number | `1000` | Milliseconds to debounce file-change events before acting |
+| `uiPort` | number | — | When set, starts a web dashboard on this port while `watch` or `watch-sync` is running |
 
 ### Using a custom config path
 
@@ -169,6 +170,32 @@ node dist/index.js watch-sync
 ```
 
 Press `Ctrl+C` to stop.
+
+## Web UI
+
+Add `uiPort` to your config to enable the web dashboard when running `watch` or `watch-sync`:
+
+```json
+{
+  "uiPort": 8080,
+  "syncPairs": [ ... ]
+}
+```
+
+Open `http://localhost:8080` in a browser. The dashboard shows:
+
+- Each sync pair with its status, last sync time, and file counts (uploaded / downloaded / deleted / skipped)
+- A **Sync** button per pair and a **Sync all** button to trigger an immediate sync
+- A live log window that auto-refreshes every 5 seconds
+
+The dashboard also exposes a simple REST API:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/status` | JSON array of all pair statuses |
+| `GET` | `/api/logs` | JSON array of recent log lines |
+| `POST` | `/api/sync` | Trigger sync for all pairs |
+| `POST` | `/api/sync?pair=<name>` | Trigger sync for one pair |
 
 ### `status` — check sync state
 

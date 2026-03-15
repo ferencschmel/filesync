@@ -93,16 +93,22 @@ export async function updateHashChain(changedPath: string, rootPath: string): Pr
   }
 }
 
-export async function buildAllHashFiles(rootPath: string): Promise<void> {
+export async function buildAllHashFiles(
+  rootPath: string,
+  onProgress?: (dirPath: string, count: number) => void,
+  _count = { value: 0 }
+): Promise<void> {
   const entries = await fs.readdir(rootPath, { withFileTypes: true });
 
   for (const entry of entries) {
     if (entry.name === HASH_FILE_NAME) continue;
     if (entry.name === LAST_STATE_FILE) continue;
     if (entry.isDirectory()) {
-      await buildAllHashFiles(path.join(rootPath, entry.name));
+      await buildAllHashFiles(path.join(rootPath, entry.name), onProgress, _count);
     }
   }
 
   await buildHashFile(rootPath);
+  _count.value += 1;
+  onProgress?.(rootPath, _count.value);
 }
