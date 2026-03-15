@@ -253,6 +253,95 @@ Add both to `.gitignore` if the sync root is also a git repository:
 sync-conflict-server.*
 ```
 
+## Running as a service
+
+Service installation is built into the executable — no separate scripts needed.
+
+### Windows 11
+
+syncTool uses [NSSM](https://nssm.cc) to register as a proper Windows service. NSSM acts as a wrapper that handles the Windows Service Control Manager protocol.
+
+**1. Install NSSM** (once, as Administrator):
+```powershell
+choco install nssm
+# or download nssm.exe from https://nssm.cc/download and place it in C:\Windows\System32
+```
+
+**2. Install the service** (as Administrator):
+```powershell
+synctool-win-x64.exe install-service --config-file "C:\synctool\config.json"
+```
+
+Options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--config-file` | required | Full path to `config.json` |
+| `--name` | `synctool` | Service name (change to run multiple instances) |
+| `--exe` | this binary | Path to the executable |
+
+The service starts automatically at boot, restarts on failure, and writes rotating logs to `%ProgramData%\synctool\logs\`.
+
+**Common commands:**
+```powershell
+Get-Service synctool                    # status
+Stop-Service synctool                   # stop
+Start-Service synctool                  # start
+Restart-Service synctool                # restart
+Get-Content "$env:ProgramData\synctool\logs\stdout.log" -Wait   # follow logs
+```
+
+**Uninstall** (as Administrator):
+```powershell
+synctool-win-x64.exe uninstall-service
+synctool-win-x64.exe uninstall-service --name synctool-prod   # named instance
+```
+
+---
+
+### Linux (systemd)
+
+**Install the service** (as root):
+```bash
+sudo ./synctool-linux-x64 install-service --config-file /etc/synctool/config.json
+```
+
+Options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--config-file` | required | Full path to `config.json` |
+| `--name` | `synctool` | Service name |
+| `--exe` | this binary | Path to the executable |
+
+The command:
+- Creates a dedicated `synctool` system user
+- Copies the binary to `/opt/synctool/`
+- Copies your config to `/etc/synctool/config.json`
+- Writes and enables a systemd unit that runs `watch-sync` at boot
+
+**Common commands:**
+```bash
+systemctl status synctool     # status
+systemctl restart synctool    # restart
+systemctl stop synctool       # stop
+journalctl -u synctool -f     # follow live logs
+```
+
+**Uninstall:**
+```bash
+sudo ./synctool-linux-x64 uninstall-service
+sudo ./synctool-linux-x64 uninstall-service --remove-data   # also delete binary and config
+```
+
+**Running multiple instances** (e.g. two different configs):
+```bash
+sudo ./synctool-linux-x64 install-service --config-file /etc/synctool/prod.json --name synctool-prod
+sudo ./synctool-linux-x64 install-service --config-file /etc/synctool/dev.json  --name synctool-dev
+```
+
+---
+
 ## Building standalone executables
 
 ```bash

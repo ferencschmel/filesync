@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
 import * as path from 'path';
+import * as os from 'os';
 import * as fs from 'fs-extra';
 import { Command } from 'commander';
 import SyncClient from './src/SyncClient';
 import WebServer from './src/WebServer';
+import {
+  installWindowsService, uninstallWindowsService,
+  installLinuxService,   uninstallLinuxService,
+} from './src/ServiceInstaller';
 import { readHashFile } from './src/HashManager';
 import { HASH_FILE_NAME } from './src/constants';
 import { AppConfig } from './src/types';
@@ -99,6 +104,42 @@ program
       } finally {
         await adapter.disconnect();
       }
+    }
+  });
+
+program
+  .command('install-service')
+  .description('Install synctool as a system service (Windows or Linux)')
+  .requiredOption('-f, --config-file <path>', 'Path to config.json for the service')
+  .option('--name <name>', 'Service name', 'synctool')
+  .option('--exe <path>', 'Path to the synctool executable (defaults to this binary)')
+  .action(async (opts: { configFile: string; name: string; exe?: string }) => {
+    const platform = os.platform();
+    const exePath = path.resolve(opts.exe ?? process.execPath);
+    const installOpts = { configFile: opts.configFile, serviceName: opts.name, exePath };
+    if (platform === 'win32') {
+      await installWindowsService(installOpts).catch(die);
+    } else if (platform === 'linux') {
+      await installLinuxService(installOpts).catch(die);
+    } else {
+      die(`install-service is not supported on platform: ${platform}`);
+    }
+  });
+
+program
+  .command('uninstall-service')
+  .description('Remove the synctool system service')
+  .option('--name <name>', 'Service name', 'synctool')
+  .option('--remove-data', 'Also remove installed binary and config files (Linux)')
+  .action(async (opts: { name: string; removeData: boolean }) => {
+    const platform = os.platform();
+    const uninstallOpts = { serviceName: opts.name, removeData: opts.removeData ?? false };
+    if (platform === 'win32') {
+      await uninstallWindowsService(uninstallOpts).catch(die);
+    } else if (platform === 'linux') {
+      await uninstallLinuxService(uninstallOpts).catch(die);
+    } else {
+      die(`uninstall-service is not supported on platform: ${platform}`);
     }
   });
 
