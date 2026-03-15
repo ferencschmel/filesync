@@ -299,7 +299,7 @@ describe('merge table: L=A, U=B, S=C — conflict', () => {
     await setupAndSync(localDir, serverDir);
 
     const conflictFiles = (await fs.readdir(localDir)).filter((f) =>
-      f.includes('.sync-conflict')
+      f.startsWith('sync-conflict-server.')
     );
     expect(conflictFiles.length).toBeGreaterThan(0);
 
