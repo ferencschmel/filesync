@@ -59,7 +59,7 @@ stages:
       - job: BuildMacOS
         displayName: 'Build macOS x64 and arm64'
         pool:
-          vmImage: 'macos-14'
+          vmImage: 'macOS-latest'
         steps:
           - checkout: self
             displayName: 'Checkout source code'
