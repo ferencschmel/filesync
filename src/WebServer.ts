@@ -51,6 +51,29 @@ class WebServer {
         return;
       }
 
+      if (req.method === 'GET' && url.pathname === '/api/conflicts') {
+        this._sendJson(res, this._client.getConflicts());
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/resolve-conflict') {
+        const pair = url.searchParams.get('pair');
+        const relPath = url.searchParams.get('relPath');
+        const keep = url.searchParams.get('keep') as 'local' | 'server' | null;
+        if (!pair || !relPath || (keep !== 'local' && keep !== 'server')) {
+          res.writeHead(400, { 'Content-Type': 'text/plain' });
+          res.end('Missing or invalid pair, relPath, or keep param');
+          return;
+        }
+        this._client.resolveConflict(pair, relPath, keep)
+          .then(() => this._sendJson(res, { ok: true }))
+          .catch(err => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+          });
+        return;
+      }
+
       if (req.method === 'POST' && url.pathname === '/api/init') {
         const pair = url.searchParams.get('pair') ?? undefined;
         this._client.init(pair).catch(err =>
@@ -114,7 +137,15 @@ class WebServer {
     .badge-err  { background: #fee2e2; color: #991b1b; }
     .badge-busy { background: #fef9c3; color: #854d0e; }
     .badge-idle { background: #f4f4f5; color: #71717a; }
+    .badge-conflict { background: #fff7ed; color: #9a3412; }
     .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .conflict-row td { vertical-align: middle; }
+    .conflict-path { font-family: monospace; font-size: 0.82rem; color: #18181b; }
+    .conflict-pair { font-size: 0.75rem; color: #71717a; }
+    .conflict-links { display: flex; gap: 12px; margin-top: 4px; font-size: 0.75rem; }
+    .conflict-links a { color: #2563eb; text-decoration: none; }
+    .conflict-links a:hover { text-decoration: underline; }
+    .no-conflicts { padding: 20px; font-size: 0.85rem; color: #71717a; text-align: center; }
     button { padding: 6px 14px; border-radius: 6px; border: 1px solid #d4d4d8; background: #18181b;
              color: #fafafa; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
     button:hover { background: #3f3f46; }
@@ -142,6 +173,10 @@ class WebServer {
       <button onclick="triggerSync()">Sync all</button>
       <button class="secondary" onclick="triggerInit()">Initialise all</button>
     </div>
+  </section>
+  <section id="conflicts-section">
+    <h2>Conflicts</h2>
+    <div id="conflicts-body"><p class="no-conflicts">No active conflicts</p></div>
   </section>
   <section>
     <h2>Log</h2>
@@ -189,6 +224,16 @@ class WebServer {
       .then(() => refresh());
   }
 
+  function resolveConflict(pair, relPath, keep) {
+    const params = new URLSearchParams({ pair, relPath, keep });
+    fetch('/api/resolve-conflict?' + params, { method: 'POST' })
+      .then(r => r.json())
+      .then(result => {
+        if (result.error) { alert('Error: ' + result.error); }
+        refresh();
+      });
+  }
+
   function refresh() {
     Promise.all([
       fetch('/api/status').then(r => r.json()),
@@ -218,6 +263,30 @@ class WebServer {
         </tr>\`;
       }).join('');
       document.getElementById('pairs-body').innerHTML = HEADERS + rows;
+    });
+
+    fetch('/api/conflicts').then(r => r.json()).then(conflicts => {
+      const body = document.getElementById('conflicts-body');
+      if (!conflicts.length) {
+        body.innerHTML = '<p class="no-conflicts">No active conflicts</p>';
+        return;
+      }
+      const rows = conflicts.map(c => \`<tr class="conflict-row">
+        <td><span class="conflict-pair">\${esc(c.pairName)}</span></td>
+        <td>
+          <span class="conflict-path">\${esc(c.relPath)}</span>
+          <div class="conflict-links">
+            <a href="file://\${esc(c.localPath)}" title="\${esc(c.localPath)}">&#128196; local version</a>
+            <a href="file://\${esc(c.conflictPath)}" title="\${esc(c.conflictPath)}">&#128196; server version</a>
+          </div>
+        </td>
+        <td><div class="btn-row">
+          <button onclick="resolveConflict('\${esc(c.pairName)}','\${esc(c.relPath)}','local')">Keep local</button>
+          <button class="secondary" onclick="resolveConflict('\${esc(c.pairName)}','\${esc(c.relPath)}','server')">Keep server</button>
+        </div></td>
+      </tr>\`).join('');
+      const header = '<tr><th>Pair</th><th>File</th><th></th></tr>';
+      body.innerHTML = '<table>' + header + rows + '</table>';
     });
 
     fetch('/api/logs').then(r => r.json()).then(lines => {

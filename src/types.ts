@@ -67,9 +67,17 @@ export interface PairStatus {
   lastError: string | null;
 }
 
+export interface ActiveConflict {
+  pairName: string;
+  relPath: string;
+  localPath: string;
+  conflictPath: string;
+}
+
 export interface AppConfig {
   syncPairs: SyncPairConfig[];
   autoSyncOnChange?: boolean;
   autoSyncDelay?: number;
+  pollInterval?: number;
   uiPort?: number;
 }

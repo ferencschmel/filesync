@@ -53,8 +53,10 @@ program
     const client = await loadClient(program.opts().config as string);
     const ui = startWebUi(client);
     await client.watch();
+    client.startPolling();
     process.on('SIGINT', () => {
       client.stopWatching();
+      client.stopPolling();
       ui?.stop();
       console.log('\n[synctool] Stopped.');
       process.exit(0);
@@ -70,8 +72,10 @@ program
     const client = new SyncClient(rawConfig, { log: console.log });
     const ui = startWebUi(client);
     await client.watch();
+    client.startPolling();
     process.on('SIGINT', () => {
       client.stopWatching();
+      client.stopPolling();
       ui?.stop();
       console.log('\n[synctool] Stopped.');
       process.exit(0);

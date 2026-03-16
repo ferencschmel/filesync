@@ -35,6 +35,7 @@ class FileWatcher {
       ignored: [
         /(^|[/\\])\../,
         new RegExp(escapeRegex(HASH_FILE_NAME)),
+        /sync-conflict-server\./,
       ],
       ignoreInitial: true,
       persistent: true,
