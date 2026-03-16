@@ -87,6 +87,10 @@ class FtpAdapter extends BaseAdapter {
     }
   }
 
+  async rename(fromPath: string, toPath: string): Promise<void> {
+    await this.client.rename(this._abs(fromPath), this._abs(toPath));
+  }
+
   async deleteDir(remotePath: string): Promise<void> {
     try {
       await this.client.removeDir(this._abs(remotePath));

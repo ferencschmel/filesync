@@ -49,6 +49,10 @@ class LocalAdapter extends BaseAdapter {
     }
   }
 
+  async rename(fromPath: string, toPath: string): Promise<void> {
+    await fs.rename(this._abs(fromPath), this._abs(toPath));
+  }
+
   async deleteDir(remotePath: string): Promise<void> {
     try {
       await fs.rm(this._abs(remotePath), { recursive: true, force: true });

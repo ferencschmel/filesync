@@ -53,6 +53,7 @@ export async function buildHashFile(dirPath: string): Promise<HashFileData> {
     if (entry.name === HASH_FILE_NAME) continue;
     if (entry.name === LAST_STATE_FILE) continue;
     if (entry.name.startsWith('sync-conflict-server.')) continue;
+    if (entry.name.startsWith('.deleted.')) continue;
 
     const fullPath = path.join(dirPath, entry.name);
 

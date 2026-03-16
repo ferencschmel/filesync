@@ -8,6 +8,7 @@ abstract class BaseAdapter {
   abstract downloadFile(remotePath: string, localPath: string): Promise<void>;
   abstract deleteFile(remotePath: string): Promise<void>;
   abstract deleteDir(remotePath: string): Promise<void>;
+  abstract rename(fromPath: string, toPath: string): Promise<void>;
   abstract ensureDir(remotePath: string): Promise<void>;
   abstract listDir(remotePath: string): Promise<DirectoryEntry[]>;
 }

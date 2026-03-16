@@ -49,6 +49,13 @@ class SyncEngine {
     return { uploaded: 0, downloaded: 0, deleted: 0, skipped: 0, conflicts: [], dirs: 0 };
   }
 
+  private _softDeleteName(name: string): string {
+    const d = new Date();
+    const ts = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}` +
+               `${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`;
+    return `.deleted.${ts}.${name}`;
+  }
+
   async sync(localRoot: string): Promise<SyncStats> {
     this.stats = this._emptyStats();
     this._newHashes = {};
@@ -196,8 +203,10 @@ class SyncEngine {
         this._localChanged = true;
         this.stats.downloaded++;
       } else if (S === U) {
-        this.log(`  Delete from server (local removed): ${relPath}`);
-        await this.adapter.deleteFile(relPath);
+        const softName = this._softDeleteName(path.basename(relPath));
+        const softRelPath = path.dirname(relPath) === '.' ? softName : `${path.dirname(relPath)}/${softName}`;
+        this.log(`  Soft-delete from server (local removed): ${relPath} → ${softRelPath}`);
+        await this.adapter.rename(relPath, softRelPath);
         delete this._newHashes[relPath];
         this.stats.deleted++;
       } else {
@@ -273,8 +282,10 @@ class SyncEngine {
       if (U === undefined) {
         await this._downloadDir(relPath, localSubDir, fullU);
       } else if (S === U) {
-        this.log(`  Delete dir from server (local removed): ${relPath}`);
-        await this.adapter.deleteDir(relPath);
+        const softName = this._softDeleteName(path.basename(relPath));
+        const softRelPath = path.dirname(relPath) === '.' ? softName : `${path.dirname(relPath)}/${softName}`;
+        this.log(`  Soft-delete dir from server (local removed): ${relPath} → ${softRelPath}`);
+        await this.adapter.rename(relPath, softRelPath);
         this._pruneHashPrefix(relPath);
         this.stats.deleted++;
       } else {
