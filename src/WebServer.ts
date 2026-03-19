@@ -163,7 +163,7 @@ class WebServer {
 <body>
 <header>
   <h1>syncTool</h1>
-  <span class="version">dashboard</span>
+  <span class="version">Dashboard v.1.0.0</span>
 </header>
 <main>
   <section>
