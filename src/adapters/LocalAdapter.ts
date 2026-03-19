@@ -16,6 +16,32 @@ class LocalAdapter extends BaseAdapter {
   }
 
   async connect(): Promise<void> {
+    if (process.platform === 'win32') {
+      const fwd = this.serverRoot.replace(/\\/g, '/');
+
+      // UNC network paths (\\server\share) cannot be created by mkdir — the share
+      // must already exist. fs.ensureDir recurses up to the UNC root (//?), which
+      // is a virtual OS prefix and not a real directory, causing ENOENT.
+      if (fwd.startsWith('//') && !fwd.startsWith('//?/')) {
+        if (!await fs.pathExists(this.serverRoot)) {
+          throw new Error(`Server path is not accessible: ${this.serverRoot}`);
+        }
+        return;
+      }
+
+      // Drive-letter paths (e.g. Z:\Backup\): verify the drive root is accessible
+      // before calling ensureDir. Windows services run as SYSTEM and do not have
+      // access to user-mapped drives. When the drive is missing, ensureDir walks up
+      // to the extended-length path prefix (\\?) and throws a confusing ENOENT.
+      const { root } = path.parse(this.serverRoot);
+      if (root && !await fs.pathExists(root)) {
+        const drive = root.replace(/[/\\]/g, '');
+        throw new Error(
+          `Drive "${drive}" is not accessible. User-mapped drives are not available ` +
+          `to Windows services. Use a UNC path (e.g. \\\\server\\share\\Backup) instead.`
+        );
+      }
+    }
     await fs.ensureDir(this.serverRoot);
   }
 
