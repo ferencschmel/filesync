@@ -31,6 +31,11 @@ class FileWatcher {
   }
 
   start(): void {
+    // On Windows, chokidar's default fs.watch backend keeps directory handles open
+    // via ReadDirectoryChangesW, which prevents folder deletion while the service runs.
+    // Polling avoids holding any directory handles.
+    const usePolling = process.platform === 'win32';
+
     this._watcher = chokidar.watch(this.rootPath, {
       ignored: [
         /(^|[/\\])\../,
@@ -39,6 +44,8 @@ class FileWatcher {
       ],
       ignoreInitial: true,
       persistent: true,
+      usePolling,
+      interval: usePolling ? 2000 : undefined,
       awaitWriteFinish: {
         stabilityThreshold: 500,
         pollInterval: 100,
